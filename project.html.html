@@ -1,0 +1,103 @@
+#libraries
+```{r}
+library(caret)
+library(rattle)
+
+```
+
+#directly download the training and test set data from the url given and store them into 'trainingData' and 'testingData' respectively
+```{r}
+trainingData = read.csv(url("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"),header=TRUE)
+testingData = read.csv(url("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"),header=TRUE)
+```
+
+```{r}
+dim(trainingData)
+dim(testingData)
+```
+
+#have a look at the trainingData
+```{r}
+str(trainingData)
+```
+
+# a huge number of columns have NA values in almost every observation. we will remove them both in trainingData and testingData, as they are of no use
+# get the indices of the columns that have atleast 90% NA or blank values
+```{r}
+indexCol = which(colSums(is.na(trainingData) |trainingData=="")>0.9*dim(trainingData)[1]) 
+```
+
+# remove those columns
+```{r}
+clean_trainingData = trainingData[,-indexCol]
+
+```
+
+# first seven columns contains the information of the people who performed the test. we dont need them so we will remove them as well
+```{r}
+clean_trainingData = clean_trainingData[,-c(1:7)]
+```
+
+# all the operations we performaed on trainingData, need to be performed on testingData as well
+```{r}
+indexCol = which(colSums(is.na(testingData) |testingData=="")>0.9*dim(testingData)[1])
+clean_testingData = testingData[, -indexCol]
+clean_testingData = clean_testingData[,-1]
+
+```
+
+```{r}
+dim(clean_trainingData)
+dim(clean_testingData)
+```
+
+# now we will train the model. to do so we partition the data into two subparts - training1 and testing1 
+# we use training1 to build the model and later to test it we use testing1 data set
+```{r}
+set.seed(12345)
+inTrain1 = createDataPartition(clean_trainingData$classe, p=0.75, list=FALSE)
+training1 = clean_trainingData[inTrain1,]
+testing1 = clean_trainingData[-inTrain1,]
+```
+
+```{r}
+dim(training1)
+dim(testing1)
+```
+
+#to improve the eficiency of the model and to avoid overfitting we use trainControl with 3 folds
+```{r}
+RF_control <- trainControl(method="cv", number=3, verboseIter=FALSE)
+```
+
+# train the model with random forest
+```{r}
+rfModel = train(classe ~ ., data=training1, method="rf", trControl=RF_control)
+```
+
+```{r}
+print(rfModel)
+
+```
+
+# the accuracy of the model is high but that couls be due to overfitting
+# to check the out of sample error we will apply the model to  the testing set that we seperated out from the trainingData set
+```{r}
+pred = predict(rfModel, newdata = testing1)
+rf_confMatrix = confusionMatrix(pred,as.factor(testing1$classe))
+rf_confMatrix
+```
+
+# model is working well on testing data as well 
+#lets apply it on the twenty semples that we downloaded as test data
+```{r}
+final_result = predict(rfModel, newdata = clean_testingData)
+```
+
+
+# now have a look at the final results 
+```{r}
+final_result
+
+```
+
