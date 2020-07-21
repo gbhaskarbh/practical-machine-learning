@@ -1,4 +1,4 @@
-# PML
+# practical machine learning
 
 #What you should submit:
 
